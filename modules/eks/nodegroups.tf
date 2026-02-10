@@ -57,9 +57,10 @@ resource "aws_eks_node_group" "this" {
   }
 
   # Update configuration
+# Update configuration
   update_config {
-    max_unavailable            = try(each.value.max_unavailable, var.nodegroup_max_unavailable)
-    max_unavailable_percentage = try(each.value.max_unavailable_percentage, null)
+    # Se existir no map do nodegroup, use. Se não, use a variável geral.
+    max_unavailable = try(each.value.max_unavailable, var.nodegroup_max_unavailable)
   }
 
   # Launch template
