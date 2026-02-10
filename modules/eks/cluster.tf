@@ -59,10 +59,11 @@ resource "aws_eks_cluster" "main" {
     }
   )
 
-  depends_on = var.create_iam_roles ? [
-    aws_iam_role_policy_attachment.cluster_policy[0],
-    aws_iam_role_policy_attachment.cluster_service_policy[0],
-  ] : []
+  # Se as roles não forem criadas, o Terraform ignora esses itens automaticamente.
+  depends_on = [
+    aws_iam_role_policy_attachment.cluster_policy,
+    aws_iam_role_policy_attachment.cluster_service_policy
+  ]
 
   timeouts {
     create = var.cluster_timeouts.create

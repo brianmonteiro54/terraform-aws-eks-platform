@@ -15,7 +15,6 @@ resource "aws_eks_node_group" "this" {
   disk_size      = each.value.disk_size
 
   # Instance configuration
-  # If instance_types is empty, launch template instance_type will be used
   instance_types = length(try(each.value.instance_types, [])) > 0 ? each.value.instance_types : null
 
   # Kubernetes version
@@ -96,13 +95,11 @@ resource "aws_eks_node_group" "this" {
     delete = var.nodegroup_timeouts.delete
   }
 
-  # Dependencies
-  depends_on = concat(
-    [aws_eks_cluster.main[0]],
-    var.create_iam_roles ? [
-      aws_iam_role_policy_attachment.node_worker_policy[0],
-      aws_iam_role_policy_attachment.node_cni_policy[0],
-      aws_iam_role_policy_attachment.node_registry_policy[0],
-    ] : []
-  )
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_launch_template.eks_workers,
+    aws_iam_role_policy_attachment.node_worker_policy,
+    aws_iam_role_policy_attachment.node_cni_policy,
+    aws_iam_role_policy_attachment.node_registry_policy
+  ]
 }

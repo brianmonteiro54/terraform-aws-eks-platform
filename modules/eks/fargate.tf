@@ -34,10 +34,8 @@ resource "aws_eks_fargate_profile" "this" {
     delete = try(each.value.timeouts.delete, "10m")
   }
 
-  depends_on = concat(
-    [aws_eks_cluster.main[0]],
-    var.create_iam_roles && length(var.fargate_profiles) > 0 ? [
-      aws_iam_role_policy_attachment.fargate_pod_execution_policy[0]
-    ] : []
-  )
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_role_policy_attachment.fargate_pod_execution_policy
+  ]
 }
