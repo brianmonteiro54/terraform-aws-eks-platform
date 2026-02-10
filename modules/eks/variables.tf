@@ -446,7 +446,6 @@ variable "nodegroups" {
       effect = string
     })), [])
     max_unavailable            = optional(number, null)
-    max_unavailable_percentage = optional(number, null)
     remote_access_enabled      = optional(bool, false)
     ec2_ssh_key                = optional(string, null)
     source_security_group_ids  = optional(list(string), [])
