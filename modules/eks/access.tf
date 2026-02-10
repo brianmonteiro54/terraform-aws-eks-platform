@@ -1,18 +1,26 @@
 # =============================================================================
-# EKS Access Entries
+# EKS Cluster Access Entries
 # =============================================================================
 resource "aws_eks_access_entry" "this" {
-  for_each = var.access_entries
+  for_each = var.create_cluster ? var.access_entries : {}
 
-  cluster_name      = aws_eks_cluster.main.name
-  principal_arn     = each.value.principal_arn
+  cluster_name  = aws_eks_cluster.main[0].name
+  principal_arn = each.value.principal_arn
+  type          = each.value.type
+
+  # Kubernetes groups (for EC2 access entries)
   kubernetes_groups = try(each.value.kubernetes_groups, [])
-  type              = each.value.type
-  user_name         = try(each.value.user_name, null)
 
+  # Username (optional, for display purposes)
+  user_name = try(each.value.user_name, null)
+
+  # Tags
   tags = merge(
-    var.tags,
+    local.common_tags,
     var.cluster_tags,
+    {
+      Name = "${var.cluster_name}-${each.key}"
+    },
     try(each.value.tags, {})
   )
 
@@ -21,30 +29,23 @@ resource "aws_eks_access_entry" "this" {
   ]
 }
 
-locals {
-  policy_associations = flatten([
-    for entry_key, entry_val in var.access_entries : [
-      for idx, policy in try(entry_val.policy_associations, []) : {
-        entry_key     = entry_key
-        policy_key    = "${entry_key}_${idx}"
-        principal_arn = entry_val.principal_arn
-        policy_arn    = policy.policy_arn
-        access_scope  = policy.access_scope
-      }
-    ]
-  ])
-
-  policy_associations_map = {
-    for assoc in local.policy_associations :
-    assoc.policy_key => assoc
-  }
-}
-
+# =============================================================================
+# EKS Cluster Access Policy Associations
+# =============================================================================
 resource "aws_eks_access_policy_association" "this" {
-  for_each = local.policy_associations_map
+  for_each = merge([
+    for entry_name, entry in var.access_entries : {
+      for idx, policy in try(entry.policy_associations, []) :
+      "${entry_name}-${idx}" => {
+        entry_name = entry_name
+        policy_arn = policy.policy_arn
+        access_scope = policy.access_scope
+      }
+    }
+  ]...)
 
-  cluster_name  = aws_eks_cluster.main.name
-  principal_arn = each.value.principal_arn
+  cluster_name  = aws_eks_cluster.main[0].name
+  principal_arn = var.access_entries[each.value.entry_name].principal_arn
   policy_arn    = each.value.policy_arn
 
   access_scope {
