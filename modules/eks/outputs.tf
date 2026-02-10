@@ -53,7 +53,7 @@ output "cluster_security_group_id" {
 output "cluster_security_group_arn" {
   description = "Amazon Resource Name (ARN) of the cluster security group"
   value = try(
-    "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:security-group/${aws_eks_cluster.main[0].vpc_config[0].cluster_security_group_id}",
+    "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:security-group/${aws_eks_cluster.main[0].vpc_config[0].cluster_security_group_id}",
     null
   )
 }
@@ -259,5 +259,5 @@ output "cluster_auth_token" {
 
 output "kubeconfig_command" {
   description = "Command to update local kubeconfig"
-  value       = var.create_cluster ? "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${aws_eks_cluster.main[0].name}" : null
+  value       = var.create_cluster ? "aws eks update-kubeconfig --region ${data.aws_region.current.id} --name ${aws_eks_cluster.main[0].name}" : null
 }
