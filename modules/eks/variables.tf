@@ -23,7 +23,7 @@ variable "create_cluster" {
 variable "create_iam_roles" {
   description = "Create IAM roles for cluster and nodes. If false, must provide cluster_role_arn and node_role_arn. Set to false for AWS Academy environments."
   type        = bool
-  default     = false  # Changed to false for AWS Academy compatibility
+  default     = false # Changed to false for AWS Academy compatibility
 }
 
 variable "create_launch_template" {
@@ -355,6 +355,12 @@ variable "launch_template_kms_key_id" {
   default     = null
 }
 
+variable "cluster_kms_key_arn" {
+  description = "Existing KMS key ARN for EKS secrets encryption. Required when enable_secrets_encryption=true and create_kms_key=false."
+  type        = string
+  default     = null
+}
+
 variable "launch_template_ebs_optimized" {
   description = "Enable EBS optimization"
   type        = bool
@@ -378,7 +384,7 @@ variable "launch_template_metadata_options" {
   })
   default = {
     http_endpoint               = "enabled"
-    http_tokens                 = "required"  # IMDSv2 required
+    http_tokens                 = "required" # IMDSv2 required
     http_put_response_hop_limit = 2
     instance_metadata_tags      = "enabled"
   }
@@ -430,26 +436,26 @@ variable "launch_template_additional_tags" {
 variable "nodegroups" {
   description = "Map of EKS managed node groups to create"
   type = map(object({
-    scaling_min                = number
-    scaling_max                = number
-    scaling_desired            = number
-    ami_type                   = optional(string, "AL2_x86_64")
-    capacity_type              = optional(string, "ON_DEMAND")
-    disk_size                  = optional(number, null)
-    instance_types             = optional(list(string), [])
-    version                    = optional(string, null)
-    release_version            = optional(string, null)
-    labels                     = optional(map(string), {})
-    taints                     = optional(list(object({
+    scaling_min     = number
+    scaling_max     = number
+    scaling_desired = number
+    ami_type        = optional(string, "AL2_x86_64")
+    capacity_type   = optional(string, "ON_DEMAND")
+    disk_size       = optional(number, null)
+    instance_types  = optional(list(string), [])
+    version         = optional(string, null)
+    release_version = optional(string, null)
+    labels          = optional(map(string), {})
+    taints = optional(list(object({
       key    = string
       value  = string
       effect = string
     })), [])
-    max_unavailable            = optional(number, null)
-    remote_access_enabled      = optional(bool, false)
-    ec2_ssh_key                = optional(string, null)
-    source_security_group_ids  = optional(list(string), [])
-    tags                       = optional(map(string), {})
+    max_unavailable           = optional(number, null)
+    remote_access_enabled     = optional(bool, false)
+    ec2_ssh_key               = optional(string, null)
+    source_security_group_ids = optional(list(string), [])
+    tags                      = optional(map(string), {})
   }))
   default = {}
 }
@@ -502,19 +508,19 @@ variable "nodegroup_timeouts" {
 variable "addons" {
   description = "Map of EKS add-ons to install"
   type = map(object({
-    addon_version                = string
-    configuration_values          = optional(string, null)
-    resolve_conflicts             = optional(string, "OVERWRITE")
-    resolve_conflicts_on_create   = optional(string, null)
-    resolve_conflicts_on_update   = optional(string, null)
-    preserve                      = optional(bool, false)
-    service_account_role_arn      = optional(string, null)
-    tags                          = optional(map(string), {})
-    timeouts                      = optional(object({
+    addon_version               = string
+    configuration_values        = optional(string, null)
+    resolve_conflicts           = optional(string, "OVERWRITE")
+    resolve_conflicts_on_create = optional(string, null)
+    resolve_conflicts_on_update = optional(string, null)
+    preserve                    = optional(bool, false)
+    service_account_role_arn    = optional(string, null)
+    tags                        = optional(map(string), {})
+    timeouts = optional(object({
       create = string
       update = string
       delete = string
-    }), {
+      }), {
       create = "20m"
       update = "20m"
       delete = "40m"
@@ -539,7 +545,7 @@ variable "fargate_profiles" {
     timeouts = optional(object({
       create = string
       delete = string
-    }), {
+      }), {
       create = "10m"
       delete = "10m"
     })
@@ -596,4 +602,19 @@ variable "cluster_tags" {
   description = "Additional tags specific to the EKS cluster"
   type        = map(string)
   default     = {}
+}
+
+# =============================================================================
+# KMS / Secrets Encryption
+# =============================================================================
+variable "enable_secrets_encryption" {
+  description = "Enable EKS secrets encryption using KMS"
+  type        = bool
+  default     = true
+}
+
+variable "create_kms_key" {
+  description = "Create a new KMS key for EKS secrets encryption. If false and enable_secrets_encryption=true, you must provide cluster_kms_key_arn."
+  type        = bool
+  default     = false
 }

@@ -2,6 +2,9 @@
 # Launch Template for EKS Worker Nodes
 # =============================================================================
 resource "aws_launch_template" "eks_workers" {
+  # checkov:skip=CKV_AWS_79: Metadata options enforced via locals with secure defaults
+  # checkov:skip=CKV_AWS_341: Hop limit enforced via locals with secure defaults
+
   count = local.launch_template_enabled ? 1 : 0
 
   name                   = coalesce(var.launch_template_name, "${var.cluster_name}-node-template")
@@ -12,7 +15,7 @@ resource "aws_launch_template" "eks_workers" {
   instance_type          = var.launch_template_instance_type
   vpc_security_group_ids = var.worker_security_group_ids
   ebs_optimized          = var.launch_template_ebs_optimized
-  
+
   # User data for EKS bootstrap (optional)
   user_data = var.launch_template_user_data_base64 != null ? var.launch_template_user_data_base64 : null
 

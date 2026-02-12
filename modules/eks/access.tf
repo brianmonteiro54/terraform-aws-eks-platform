@@ -37,8 +37,8 @@ resource "aws_eks_access_policy_association" "this" {
     for entry_name, entry in var.access_entries : {
       for idx, policy in try(entry.policy_associations, []) :
       "${entry_name}-${idx}" => {
-        entry_name = entry_name
-        policy_arn = policy.policy_arn
+        entry_name   = entry_name
+        policy_arn   = policy.policy_arn
         access_scope = policy.access_scope
       }
     }

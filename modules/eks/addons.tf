@@ -35,7 +35,7 @@ resource "aws_eks_addon" "this" {
     local.common_tags,
     var.cluster_tags,
     {
-      Name     = "${var.cluster_name}-${each.key}"
+      Name      = "${var.cluster_name}-${each.key}"
       AddonName = each.key
     },
     try(each.value.tags, {})

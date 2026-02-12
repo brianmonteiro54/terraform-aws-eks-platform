@@ -6,13 +6,20 @@ locals {
   # Cluster identification
   cluster_name = var.cluster_name
 
+  # Resolved KMS key ARN for EKS secrets encryption
+  # Uses provided ARN or the one created by this module
+  eks_kms_key_arn = var.enable_secrets_encryption ? coalesce(
+    var.cluster_kms_key_arn,
+    try(aws_kms_key.eks[0].arn, null)
+  ) : null
+
   # Common tags merged with custom tags
   common_tags = merge(
     var.tags,
     {
       "kubernetes.io/cluster/${local.cluster_name}" = "owned"
-      ManagedBy                                      = "Terraform"
-      ClusterName                                    = local.cluster_name
+      ManagedBy                                     = "Terraform"
+      ClusterName                                   = local.cluster_name
     }
   )
 
@@ -39,12 +46,12 @@ locals {
 
   # Launch template defaults
   launch_template_enabled = var.create_launch_template && var.create_cluster
-  
+
   # Metadata options with secure defaults
   metadata_options = merge(
     {
       http_endpoint               = "enabled"
-      http_tokens                 = "required"  # IMDSv2 required for security
+      http_tokens                 = "required" # IMDSv2 required for security
       http_put_response_hop_limit = 2
       instance_metadata_tags      = "enabled"
     },

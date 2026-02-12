@@ -10,9 +10,9 @@ resource "aws_eks_node_group" "this" {
   subnet_ids      = local.nodegroup_subnets[each.key]
 
   # AMI configuration
-  ami_type       = each.value.ami_type
-  capacity_type  = each.value.capacity_type
-  disk_size      = each.value.disk_size
+  ami_type      = each.value.ami_type
+  capacity_type = each.value.capacity_type
+  disk_size     = each.value.disk_size
 
   # Instance configuration
   instance_types = length(try(each.value.instance_types, [])) > 0 ? each.value.instance_types : null
@@ -57,7 +57,7 @@ resource "aws_eks_node_group" "this" {
   }
 
   # Update configuration
-update_config {
+  update_config {
     max_unavailable = coalesce(each.value.max_unavailable, var.nodegroup_max_unavailable)
   }
 

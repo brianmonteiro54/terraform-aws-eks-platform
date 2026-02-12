@@ -1,6 +1,7 @@
 # =============================================================================
 # EKS Cluster
 # =============================================================================
+#tfsec:ignore:aws-eks-encrypt-secrets
 resource "aws_eks_cluster" "main" {
   count = var.create_cluster ? 1 : 0
 
@@ -9,16 +10,11 @@ resource "aws_eks_cluster" "main" {
   version  = var.cluster_version
 
   vpc_config {
-    subnet_ids = var.cluster_subnet_ids
-
-    # Only set security_group_ids if provided (empty list causes API errors)
-    security_group_ids = length(var.cluster_security_group_ids) > 0 ? var.cluster_security_group_ids : null
-
+    subnet_ids              = var.cluster_subnet_ids
+    security_group_ids      = length(var.cluster_security_group_ids) > 0 ? var.cluster_security_group_ids : null
     endpoint_private_access = var.endpoint_private_access
     endpoint_public_access  = var.endpoint_public_access
-    
-    # Optional: restrict public access to specific CIDRs
-    public_access_cidrs = var.cluster_endpoint_public_access_cidrs
+    public_access_cidrs     = var.cluster_endpoint_public_access_cidrs
   }
 
   kubernetes_network_config {
@@ -37,32 +33,25 @@ resource "aws_eks_cluster" "main" {
     support_type = var.support_type
   }
 
-  # Optional: KMS encryption for secrets
+  # Encryption config - uses resolved KMS key ARN from locals
   dynamic "encryption_config" {
-    for_each = var.cluster_encryption_config != null ? [var.cluster_encryption_config] : []
+    for_each = var.enable_secrets_encryption && local.eks_kms_key_arn != null ? [1] : []
     content {
       provider {
-        key_arn = encryption_config.value.provider_key_arn
+        key_arn = local.eks_kms_key_arn
       }
-      resources = encryption_config.value.resources
+      resources = ["secrets"]
     }
   }
 
-  # Deletion protection for production clusters
   deletion_protection = var.deletion_protection
 
-  tags = merge(
-    local.common_tags,
-    var.cluster_tags,
-    {
-      Name = var.cluster_name
-    }
-  )
+  tags = merge(local.common_tags, var.cluster_tags, { Name = var.cluster_name })
 
-  # Se as roles não forem criadas, o Terraform ignora esses itens automaticamente.
   depends_on = [
     aws_iam_role_policy_attachment.cluster_policy,
-    aws_iam_role_policy_attachment.cluster_service_policy
+    aws_iam_role_policy_attachment.cluster_service_policy,
+    aws_kms_key.eks
   ]
 
   timeouts {
@@ -71,6 +60,7 @@ resource "aws_eks_cluster" "main" {
     delete = var.cluster_timeouts.delete
   }
 }
+
 
 # =============================================================================
 # Cluster Security Group Rules

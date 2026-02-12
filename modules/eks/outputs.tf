@@ -111,16 +111,16 @@ output "node_groups" {
   description = "Map of attribute maps for all EKS node groups created"
   value = {
     for k, v in aws_eks_node_group.this : k => {
-      id               = v.id
-      arn              = v.arn
-      status           = v.status
-      capacity_type    = v.capacity_type
-      instance_types   = v.instance_types
-      labels           = v.labels
-      resources        = v.resources
-      scaling_config   = v.scaling_config
-      taints           = v.taint
-      version          = v.version
+      id             = v.id
+      arn            = v.arn
+      status         = v.status
+      capacity_type  = v.capacity_type
+      instance_types = v.instance_types
+      labels         = v.labels
+      resources      = v.resources
+      scaling_config = v.scaling_config
+      taints         = v.taint
+      version        = v.version
     }
   }
 }
@@ -175,12 +175,12 @@ output "cluster_addons" {
   description = "Map of attribute maps for all EKS cluster addons"
   value = {
     for k, v in aws_eks_addon.this : k => {
-      id                = v.id
-      arn               = v.arn
-      addon_name        = v.addon_name
-      addon_version     = v.addon_version
-      created_at        = v.created_at
-      modified_at       = v.modified_at
+      id                       = v.id
+      arn                      = v.arn
+      addon_name               = v.addon_name
+      addon_version            = v.addon_version
+      created_at               = v.created_at
+      modified_at              = v.modified_at
       service_account_role_arn = v.service_account_role_arn
     }
   }
@@ -223,12 +223,12 @@ output "access_entries" {
   description = "Map of access entries created"
   value = {
     for k, v in aws_eks_access_entry.this : k => {
-      principal_arn = v.principal_arn
-      type          = v.type
-      user_name     = v.user_name
+      principal_arn    = v.principal_arn
+      type             = v.type
+      user_name        = v.user_name
       access_entry_arn = v.access_entry_arn
-      created_at    = v.created_at
-      modified_at   = v.modified_at
+      created_at       = v.created_at
+      modified_at      = v.modified_at
     }
   }
 }
