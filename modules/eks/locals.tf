@@ -6,12 +6,10 @@ locals {
   # Cluster identification
   cluster_name = var.cluster_name
 
-  # Resolved KMS key ARN for EKS secrets encryption
-  # Uses provided ARN or the one created by this module
-  eks_kms_key_arn = var.enable_secrets_encryption ? coalesce(
-    var.cluster_kms_key_arn,
-    try(aws_kms_key.eks[0].arn, null)
-  ) : null
+  enable_encryption = var.enable_secrets_encryption || var.cluster_kms_key_arn != null
+  eks_kms_key_arn = var.cluster_kms_key_arn != null ? var.cluster_kms_key_arn : (
+    length(aws_kms_key.eks) > 0 ? aws_kms_key.eks[0].arn : null
+  )
 
   # Common tags merged with custom tags
   common_tags = merge(

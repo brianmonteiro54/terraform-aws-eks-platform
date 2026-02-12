@@ -1,8 +1,13 @@
 # =============================================================================
-# KMS Key for EKS Secrets Encryption (Optional)
+# KMS Key for EKS Secrets Encryption (Optional - Customer Managed Key)
 # =============================================================================
+# Created only when:
+#   - enable_secrets_encryption = true (encryption enabled)
+#   - create_kms_key = true (user wants a CMK)
+#   - cluster_kms_key_arn = null (no existing key provided)
+
 resource "aws_kms_key" "eks" {
-  count = var.enable_secrets_encryption && var.create_kms_key ? 1 : 0
+  count = local.enable_encryption && var.create_kms_key && var.cluster_kms_key_arn == null ? 1 : 0
 
   description         = "KMS key for EKS secrets encryption (${var.cluster_name})"
   enable_key_rotation = true
@@ -43,7 +48,7 @@ resource "aws_kms_key" "eks" {
 }
 
 resource "aws_kms_alias" "eks" {
-  count = var.enable_secrets_encryption && var.create_kms_key ? 1 : 0
+  count = local.enable_encryption && var.create_kms_key && var.cluster_kms_key_arn == null ? 1 : 0
 
   name          = "alias/${var.cluster_name}-eks-secrets"
   target_key_id = aws_kms_key.eks[0].key_id

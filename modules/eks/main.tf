@@ -3,6 +3,7 @@
 # =============================================================================
 #tfsec:ignore:aws-eks-encrypt-secrets
 resource "aws_eks_cluster" "main" {
+  # checkov:skip=CKV_AWS_58: EKS secrets encryption is conditionally enabled via var.enable_secrets_encryption
   count = var.create_cluster ? 1 : 0
 
   name     = var.cluster_name
@@ -33,9 +34,12 @@ resource "aws_eks_cluster" "main" {
     support_type = var.support_type
   }
 
-  # Encryption config - uses resolved KMS key ARN from locals
+  # Encryption config with CMK (only when a KMS key ARN is available)
+  # When enable_encryption=true + create_kms_key=false + kms_key_arn=null → AWS managed encryption (no block needed)
+  # When enable_encryption=true + create_kms_key=true + kms_key_arn=null → uses created CMK
+  # When enable_encryption=true + kms_key_arn="arn:..." → uses provided key
   dynamic "encryption_config" {
-    for_each = var.enable_secrets_encryption && local.eks_kms_key_arn != null ? [1] : []
+    for_each = local.enable_encryption && local.eks_kms_key_arn != null ? [1] : []
     content {
       provider {
         key_arn = local.eks_kms_key_arn

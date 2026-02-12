@@ -355,12 +355,6 @@ variable "launch_template_kms_key_id" {
   default     = null
 }
 
-variable "cluster_kms_key_arn" {
-  description = "Existing KMS key ARN for EKS secrets encryption. Required when enable_secrets_encryption=true and create_kms_key=false."
-  type        = string
-  default     = null
-}
-
 variable "launch_template_ebs_optimized" {
   description = "Enable EBS optimization"
   type        = bool
@@ -608,13 +602,19 @@ variable "cluster_tags" {
 # KMS / Secrets Encryption
 # =============================================================================
 variable "enable_secrets_encryption" {
-  description = "Enable EKS secrets encryption using KMS"
+  description = "Enable EKS secrets encryption. When true with create_kms_key=false, uses AWS managed encryption. When true with create_kms_key=true, creates or uses a CMK."
   type        = bool
   default     = true
 }
 
 variable "create_kms_key" {
-  description = "Create a new KMS key for EKS secrets encryption. If false and enable_secrets_encryption=true, you must provide cluster_kms_key_arn."
+  description = "Create a customer managed KMS key. When false, AWS managed encryption is used. When true and cluster_kms_key_arn is null, a new CMK is created. When true and cluster_kms_key_arn is provided, uses the existing key."
   type        = bool
   default     = false
+}
+
+variable "cluster_kms_key_arn" {
+  description = "Existing KMS key ARN for EKS secrets encryption. Only used when create_kms_key=true. If null, a new CMK is created."
+  type        = string
+  default     = null
 }
