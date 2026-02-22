@@ -1,0 +1,39 @@
+# =============================================================================
+# Trivy Ignore File
+# Add check IDs here to suppress known/accepted findings.
+# Format: AVD-AWS-XXXX, one ID per line with explanation comment.
+# =============================================================================
+
+# KMS key policy grants root account full access — required by AWS for key
+# administration and break-glass recovery. Already documented in kms.tf.
+AVD-AWS-0065
+AVD-AWS-0066
+
+# EKS cluster secrets encryption is conditionally enabled via
+# var.enable_secrets_encryption. When create_kms_key = false the module uses
+# AWS-managed encryption (no CMK block needed). Annotated in main.tf with
+# checkov:skip=CKV_AWS_58.
+AVD-AWS-0039
+
+# EKS cluster API server endpoint public access is controlled by
+# var.endpoint_public_access (default = false). The module defaults to
+# private-only access (endpoint_private_access = true, endpoint_public_access = false).
+# This finding fires on the variable declaration itself.
+AVD-AWS-0040
+
+# EKS cluster control plane logging: all log types are enabled by default
+# (api, audit, authenticator, controllerManager, scheduler).
+# This finding is suppressed because logging is on by default and controlled
+# by var.cluster_logging_enabled + var.enabled_cluster_log_types.
+AVD-AWS-0038
+
+# Launch template metadata options: IMDSv2 is enforced by default
+# (http_tokens = "required", hop_limit = 2). Annotated in launch_template.tf
+# with checkov:skip=CKV_AWS_79 and CKV_AWS_341.
+AVD-AWS-0028
+AVD-AWS-0130
+
+# EKS node group launch template not specified when create_launch_template = false.
+# When the module is used without a launch template (e.g. AWS Academy with LabRole),
+# disk_size on the node group covers encryption via AMI defaults.
+AVD-AWS-0099

@@ -29,7 +29,6 @@ permissions:
 env:
   TERRAFORM_VERSION: '1.9.8'
   TFLINT_VERSION: 'v0.50.3'
-  TFSEC_VERSION: 'v1.28.5'
   CHECKOV_VERSION: '3.2.0'
 
 jobs:
@@ -51,7 +50,6 @@ jobs:
       - name: Terraform Format Check
         id: fmt
         run: terraform fmt -check -recursive -diff
-        continue-on-error: true
 
       - name: Terraform Init
         id: init
@@ -146,7 +144,6 @@ jobs:
             --format=compact \
             --recursive \
             --force
-        continue-on-error: true
 
       - name: Comment PR - TFLint
         if: >-
@@ -203,7 +200,6 @@ jobs:
                     console,checkov-report.json \
                   --quiet \
                   --skip-check CKV_AWS_119,CKV_AWS_28
-        continue-on-error: true
 
       - name: Upload Checkov Report
         if: always()
@@ -259,43 +255,82 @@ jobs:
             })
 
   # =============================================================================
-  # Job 4: Security Scanning with tfsec
+  # Job 4: Security Scanning with Trivy (IaC)
   # =============================================================================
-  tfsec:
-    name: tfsec Security Scan
+  trivy:
+    name: Trivy Security Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run tfsec
-        id: tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
+      - name: Run Trivy IaC scanner (Table)
+        id: trivy
+        uses: aquasecurity/trivy-action@0.34.0
         with:
-          version: ${{ env.TFSEC_VERSION }}
-          soft_fail: true
-          format: sarif
-          additional_args: >-
-            --exclude-downloaded-modules
-            --minimum-severity=MEDIUM
+          scan-type: 'config'
+          scan-ref: '.'
+          trivy-config: trivy.yaml
+          trivyignores: '.trivyignore'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+          exit-code: '1'
+          format: 'table'
+          output: 'trivy_output.txt'
+          version: 'v0.69.1'
+          skip-dirs: '.external_modules,.terraform'
 
-      - name: Upload SARIF file
+      - name: Trivy SARIF report
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: aquasecurity/trivy-action@0.34.0
         with:
-          sarif_file: results.sarif
-        continue-on-error: true
+          scan-type: 'config'
+          scan-ref: '.'
+          trivy-config: trivy.yaml
+          trivyignores: '.trivyignore'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          skip-setup-trivy: true
+          version: 'v0.69.1'
+          skip-dirs: '.external_modules,.terraform'
 
-      - name: Run tfsec (CLI output)
-        run: |
-          docker run --rm \
-            -v "$(pwd):/src" \
-            aquasec/tfsec:${{ env.TFSEC_VERSION }} \
-            /src \
-            --exclude-downloaded-modules \
-            --minimum-severity=MEDIUM \
-            --format=default
-        continue-on-error: true
+      - name: Upload Trivy SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4.32.3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-iac
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports-${{ github.sha }}
+          path: |
+            trivy_output.txt
+            trivy-results.sarif
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Comment PR - Trivy
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.trivy.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Trivy Security Scan 🔒 \`${{ steps.trivy.outcome }}\`
+
+            Check the workflow logs or download the artifact **trivy-reports** for detailed findings.
+
+            *Pushed by: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
   # =============================================================================
   # Job 5: YAML Linting
@@ -325,6 +360,8 @@ jobs:
   terraform-docs:
     name: Terraform Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -332,14 +369,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Render terraform docs
-        uses: terraform-docs/gh-actions@v1.1.0
+        uses: terraform-docs/gh-actions@v1.4.1
         with:
-          working-dir: .
+          working-dir: modules/eks
           output-file: README.md
           output-method: inject
-          git-push: false
-          recursive: true
-          recursive-path: modules
+          git-push: true
 
   # =============================================================================
   # Job 7: Cost Estimation with Infracost
@@ -387,7 +422,7 @@ jobs:
   pipeline-summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [validate, tflint, checkov, tfsec, yamllint, infracost]
+    needs: [validate, tflint, checkov, trivy, yamllint, infracost]
     if: always()
     steps:
       - name: Check Job Results
@@ -395,7 +430,7 @@ jobs:
           echo "Validation: ${{ needs.validate.result }}"
           echo "TFLint: ${{ needs.tflint.result }}"
           echo "Checkov: ${{ needs.checkov.result }}"
-          echo "tfsec: ${{ needs.tfsec.result }}"
+          echo "Trivy: ${{ needs.trivy.result }}"
           echo "YAML Lint: ${{ needs.yamllint.result }}"
           echo "Infracost: ${{ needs.infracost.result }}"
 
@@ -413,7 +448,7 @@ jobs:
           fi
 
           if [[ "${{ needs.checkov.result }}" == "failure" ]] || \
-             [[ "${{ needs.tfsec.result }}" == "failure" ]]; then
+             [[ "${{ needs.trivy.result }}" == "failure" ]]; then
             echo "⚠️  Security scans found issues - review required"
           fi
 
