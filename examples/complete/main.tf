@@ -32,7 +32,7 @@ module "eks" {
   # Cluster identity
   # ---------------------------------------------------
   cluster_name    = "my-app-cluster"
-  cluster_version = "1.31"
+  cluster_version = "1.34"
 
   # ---------------------------------------------------
   # Network — control plane lives in private subnets
