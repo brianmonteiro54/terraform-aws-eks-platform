@@ -4,6 +4,7 @@
 #tfsec:ignore:aws-eks-encrypt-secrets
 resource "aws_eks_cluster" "main" {
   # checkov:skip=CKV_AWS_58: EKS secrets encryption is conditionally enabled via var.enable_secrets_encryption
+  # checkov:skip=CKV_AWS_339: Kubernetes version is controlled via cluster_version variable (validated >= 1.27); Checkov cannot evaluate dynamic variable values statically
   count = var.create_cluster ? 1 : 0
 
   name     = var.cluster_name

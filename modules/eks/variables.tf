@@ -314,7 +314,7 @@ variable "launch_template_volume_iops" {
   validation {
     condition = (
       var.launch_template_volume_iops == null ||
-      (var.launch_template_volume_iops >= 3000 && var.launch_template_volume_iops <= 16000)
+      try(var.launch_template_volume_iops >= 3000 && var.launch_template_volume_iops <= 16000, false)
     )
     error_message = "IOPS must be between 3000 and 16000 when specified."
   }
